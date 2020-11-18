@@ -34,7 +34,7 @@ file_name='player_per_game.csv'
 df_stats = pd.read_csv(str(data_dir+file_name), index_col=0).reset_index(drop=True)
 # Launch the Dasboard in streamlit
 st.title('Forecast model for NBA players')
-st.write('Linear regression model to predict the players BPM (Box-Plus-Minus)')
+st.write('Linear regression model to predict the players BPM (Box-Plus-Minus) and PER (Player Efficiency Rating)')
 
 st.header('Data pre-processing')
 # Graph with no. minutes played
@@ -84,8 +84,8 @@ st.write("We have quite discrepancy of various features - it requires normalizin
 # Scale the DF using sktLearn-preprocessing
 scaler = preprocessing.StandardScaler().fit(cont_df) # We use a standard scale (mean = 0, std = 1)
 # Fit(cont_df) to that scaler
-X = scaler.transform(cont_df)
-cont_df_scaler = pd.DataFrame(X, columns=cont_var_cols)
+X = scaler.transform(cont_df) # Array
+cont_df_scaler = pd.DataFrame(X, columns=cont_var_cols) # DataFrame
 if st.checkbox('Show normalized DataFrame'):
     st.write(cont_df_scaler)
 # Execute the same operation
@@ -94,3 +94,8 @@ feat_fig = feat_bar_plot(feat_desc, f'Statistical description of various feature
 st.write(feat_fig)
 
 #%% Build the Regression model
+# Select BPM (Box-Plus-Minus) or PER (Player Efficiency Rating) to be predicted by the model
+y_stat = st.selectbox('Select BPM or PER to predicts:', ['bpm', 'per'], index=0)
+Y = df_stats[y_stat].values # Select the only target for prediction
+# Split the data into training and testing
+X_train, X_test, Y_train, Y_test = model_selection.train_test_split(X, Y, train_size=0.8, random_state=42, shuffle=True)
