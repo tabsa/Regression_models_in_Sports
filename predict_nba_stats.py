@@ -28,10 +28,15 @@ def feat_bar_plot(data, plt_title, log_scale):
                   template='plotly_white', labels={"var": "Variable", "value": "Value", "variable": "Statistic"},
                   color_discrete_sequence=px.colors.qualitative.Safe, log_y=log_scale,)
 
+@st.cache() # Memory catche to avoid multiple loads of the same data
+def get_data(dir, file):
+    return pd.read_csv(str(dir + file), index_col=0).reset_index(drop=True)
+
+
 #%% Data pre-processing
 data_dir = '~/PycharmProjects/Regression_models_in_Sports/data/'
 file_name='player_per_game.csv'
-df_stats = pd.read_csv(str(data_dir+file_name), index_col=0).reset_index(drop=True)
+df_stats = get_data(data_dir, file_name)
 # Launch the Dasboard in streamlit
 st.title('Forecast model for NBA players')
 st.write('Linear regression model to predict the players BPM (Box-Plus-Minus) and PER (Player Efficiency Rating)')
@@ -94,8 +99,43 @@ feat_fig = feat_bar_plot(feat_desc, f'Statistical description of various feature
 st.write(feat_fig)
 
 #%% Build the Regression model
+st.header('Prediction results')
 # Select BPM (Box-Plus-Minus) or PER (Player Efficiency Rating) to be predicted by the model
 y_stat = st.selectbox('Select BPM or PER to predicts:', ['bpm', 'per'], index=0)
 Y = df_stats[y_stat].values # Select the only target for prediction
 # Split the data into training and testing
 X_train, X_test, Y_train, Y_test = model_selection.train_test_split(X, Y, train_size=0.8, random_state=42, shuffle=True)
+_, df_test_name = model_selection.train_test_split(df_stats, train_size=0.8, random_state=42, shuffle=True)
+# Select the regression model: Stochastic grad desc, Ridge regression, Supp vector regression
+mdl_names = {
+    "Stochastic Gradient Descent": "sdg", "Ridge Regression": "ridge",
+    "Support Vector Regression": "svr",
+}
+reg_opt = st.selectbox("Choose regression model", list(mdl_names.keys()), index=0)
+reg_mod = mdl_names[reg_opt] # Selected model
+# Build the model
+if reg_mod == 'sdg':
+    model = linear_model.SGDRegressor(loss='squared_loss', penalty='l2', max_iter=1000)
+    model.fit(X_train, Y_train)
+elif reg_mod == 'ridge':
+    model = linear_model.Ridge(alpha=0.5)
+    model.fit(X_train, Y_train)
+elif reg_mod == 'svr':
+    model = svm.SVR(kernel='rbf', degree=3)
+    model.fit(X_train, Y_train)
+
+# Test prediction
+Y_test_hat = model.predict(X_test) # Predict the test set
+df_test = pd.DataFrame([Y_test_hat, Y_test], index=['Prediction', 'Actual']).transpose()
+# Add 2-extra columns with players Name and Season
+df_test = df_test.assign(player=df_test_name["name"].values)
+df_test = df_test.assign(season=df_test_name["season"].values)
+val_fig = px.scatter(df_test, x="Prediction", y="Actual", title=f"{reg_opt} model prediction of {y_stat.upper()} vs ground truths", template="plotly_white",
+                     color_discrete_sequence=px.colors.qualitative.Safe, hover_data=["player", "season"]
+                     )
+st.write(val_fig)
+
+#%% Evaluate the prediction
+st.subheader("Evaluation of the results:")
+mse = metrics.mean_squared_error(Y_test, Y_test_hat)
+st.write(f"Mean square error with {reg_opt}: {round(mse, 2)}")
