@@ -1,14 +1,15 @@
 ## Docker server for the regression model application
 # File that Docker server will run, which is the main file that calls the regression model application
 
-#%% Import python.files
+#%% Import packages and python.files
+from pathlib import Path
 from func import *
 from reg_model import reg_mdl
 from app import dashboard
 
 #%% Main file
 if __name__ == '__main__':
-    data_dir = '~/PycharmProjects/Regression_models_in_Sports/data/'
+    data_dir = Path.cwd()
     file_name='player_per_game.csv'
     # Filter out the necessary features
     cont_var_cols = ['g', 'mp_per_g', 'fg_per_g', 'fga_per_g', 'fg3_per_g', 'fg3a_per_g', 'fg2_per_g','fg2a_per_g',
@@ -17,5 +18,5 @@ if __name__ == '__main__':
 
     app_cls = dashboard(data_dir, file_name, cont_var_cols)
 
-    app_cls.run_dashboard() # Run the app with dashboard
-    #app_cls.run_script()
+    #app_cls.run_dashboard() # Run the app with dashboard
+    app_cls.run_script()

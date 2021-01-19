@@ -13,7 +13,7 @@ from reg_model import reg_mdl
 #%% Dashboard class
 class dashboard:
     def __init__(self, dir, file, feat_cols):
-        self.path = str(dir + file)
+        self.path = dir / file
         self.df_stats = self.get_data()
         self.feat_cols = feat_cols # Filter out the necessary features from df_stats
         self.cont_df = self.df_stats[self.feat_cols] # Repeated operation as in reg_mdl - Get DF with all features
@@ -38,12 +38,11 @@ class dashboard:
         self.sec_eval_results(reg_opt)
 
     def run_script(self):
+        # Filter out the small samples
+        self.df_stats = self.df_stats[self.df_stats['mp'] >= 500].reset_index(drop=True)
         # Select BPM (Box-Plus-Minus) or PER (Player Efficiency Rating) to be predicted by the model
         y_stat = 'bpm'
-        # Call the call reg_models to build and run the models
-        mdl_names = ["Stochastic Gradient Descent", "Ridge Regression",
-                     "Support Vector Regression"]  # Future it can be added others
-        self.reg_models_class = self.get_reg_mdl(y_stat, mdl_names)
+        self.reg_models_class = self.get_reg_mdl(y_stat, self.mdl_names)
         print('Simulation done')
         print(self.reg_models_class.df_test)
 
